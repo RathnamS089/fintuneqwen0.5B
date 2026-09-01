@@ -1,0 +1,20 @@
+
+base: Qwen/Qwen2.5-Coder-0.5B-Instruct
+task: sft
+data:
+  train: data/processed/js_soup_train.jsonl
+  format: alpaca
+  val_split: 0.1
+  max_length: 2048
+training:
+  epochs: 3
+  lr: 2e-4
+  batch_size: 1          # 8GB -> 1, grad_accum 4 => eff 4
+  gradient_accumulation_steps: 4
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+  quantization: none     # MPS: 4bit auto-disabled, use none (0.5B fits)
+  seed: 42
+output: ./output/js-qwen05b
