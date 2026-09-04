@@ -2,7 +2,7 @@
 base: Qwen/Qwen2.5-Coder-0.5B-Instruct
 task: sft
 data:
-  train: data/processed/js_soup_train.jsonl
+  train: ../data/processed/js_soup_train.jsonl
   format: alpaca
   val_split: 0.1
   max_length: 2048
