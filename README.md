@@ -1,14 +1,28 @@
 # Fine-tuning Qwen 0.5B
 
-An experimental project for preparing data and fine-tuning **Qwen 0.5B** models on modest hardware.
+A lightweight, configuration-driven project for preparing data and fine-tuning Qwen 0.5B models on accessible hardware.
 
-> **Status:** Experimental / work in progress
+The repository brings together data collection, preprocessing, training configuration, and evaluation in one workflow. It is designed for developers and researchers who want to experiment with smaller language models without relying on large, expensive infrastructure.
 
-## Motivation
+## Why this repository exists
 
-This repository was inspired by [Soup](https://github.com/razor-ai/soup), a project that makes language-model training and fine-tuning configurable through YAML files and aims to reduce the hardware and setup burden for local experimentation. Soup describes a workflow where training can be driven from a single YAML configuration, including low-memory approaches such as layer streaming. citeturn0search0
+Fine-tuning language models often involves complex setup, large hardware requirements, and many framework-specific configuration details. This project exists to make that process easier to understand and reproduce for smaller models.
 
-The goal here was to explore a similar, practical workflow for a smaller Qwen model: collect or prepare data, preprocess it, configure training, and evaluate the result without requiring a large machine.
+The project was inspired by [Soup](https://github.com/razor-ai/soup), a GitHub trending project that uses YAML-based instructions to simplify model training and fine-tuning workflows. This repository explores a similar idea for Qwen 0.5B: keep the workflow modular, make configuration visible, and support practical experimentation on limited hardware.
+
+The focus is not only on training a model, but also on documenting the surrounding workflow:
+
+- Preparing and cleaning data
+- Organizing training configurations
+- Testing different hardware backends
+- Evaluating fine-tuned model behavior
+- Understanding the trade-offs of local fine-tuning
+
+## Project workflow
+
+```text
+Collect data → Preprocess data → Configure training → Fine-tune Qwen 0.5B → Evaluate results
+```
 
 ## Repository layout
 
@@ -17,13 +31,13 @@ The goal here was to explore a similar, practical workflow for a smaller Qwen mo
 ├── data/           # Training and evaluation data
 ├── evaluvation/    # Evaluation scripts and outputs
 ├── preprocessing/  # Dataset preparation and preprocessing
-├── scrapper/       # Data collection / scraping utilities
-├── training/       # Training scripts and configuration files
+├── scrapper/       # Data collection and scraping utilities
+├── training/       # Training scripts and YAML configuration files
 ├── requirements.txt
 └── git.md          # Git and virtual-environment notes
 ```
 
-## Getting started
+## Usage
 
 ### 1. Clone the repository
 
@@ -33,8 +47,6 @@ cd fintuneqwen0.5B
 ```
 
 ### 2. Create a virtual environment
-
-Using a virtual environment helps keep PyTorch and other machine-learning dependencies isolated from the rest of your system.
 
 ```bash
 python -m venv .venv
@@ -49,55 +61,93 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-The current requirements file contains the utilities used for data collection and processing, including `requests`, `beautifulsoup4`, `lxml`, and `tqdm`. Training dependencies may need to be installed separately depending on your operating system, Python version, and accelerator.
+The current requirements include utilities for data collection and processing such as `requests`, `beautifulsoup4`, `lxml`, and `tqdm`. Training dependencies may need to be installed separately depending on your operating system, Python version, PyTorch version, and accelerator.
 
-### 4. Prepare data
+### 4. Prepare a dataset
 
-Use the scripts in `scrapper/` and `preprocessing/` to collect and transform data into the format expected by the training workflow. Review the files in `data/` before starting a run, and keep private or copyrighted data out of the repository.
+Use the utilities in `scrapper/` to collect data and the scripts in `preprocessing/` to transform it into the format expected by the training workflow.
 
-### 5. Configure and run training
+Before training, check that your dataset:
 
-Training configuration is intended to be controlled through YAML files in `training/`. Update the model, dataset, batch size, gradient accumulation, number of epochs, output directory, and device settings for your hardware before running a script.
+- Uses the expected format
+- Does not contain private or sensitive information
+- Has consistent input and output fields
+- Contains clean, relevant examples
+- Is split appropriately for training and evaluation
 
-Because this project is experimental, the exact command may depend on the training script and configuration currently present in `training/`. Start by inspecting that directory:
+### 5. Configure a training run
+
+Training settings are intended to be managed through YAML files in `training/`. A configuration can contain values such as:
+
+```yaml
+model_name: Qwen/Qwen2.5-0.5B
+train_file: data/train.jsonl
+output_dir: outputs/qwen-0.5b-finetuned
+num_train_epochs: 3
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 0.00002
+max_seq_length: 512
+```
+
+Use the actual model identifier, dataset paths, and supported field names required by the training script in this repository. The example above is intended as a starting point rather than a guaranteed drop-in configuration.
+
+### 6. Start training
+
+Inspect the available files in `training/` and run the training entry point associated with your YAML configuration:
 
 ```bash
 find training -maxdepth 2 -type f
+python training/<training_script>.py --config training/<config>.yaml
 ```
 
-## Hardware and backend notes
+Replace the placeholders with the relevant script and configuration file names in your checkout.
 
-- A smaller model does not guarantee a successful fine-tuning run; memory usage also depends on sequence length, batch size, optimizer, precision, and framework versions.
-- PyTorch versions must be compatible with your Python version and hardware backend.
-- Apple Silicon users may encounter additional compatibility issues when combining PyTorch, MPS, and MLX-based tooling. MLX is a separate backend and should not be assumed to work with a PyTorch training script without corresponding support.
-- If a run fails, first check the Python, PyTorch, Transformers, and accelerator versions together rather than upgrading one package in isolation.
-- Use small datasets, short sequence lengths, gradient accumulation, and frequent checkpoints while debugging.
+### 7. Evaluate the model
 
-## Current limitations
+After training, use the scripts in `evaluvation/` to compare the fine-tuned model with the base model:
 
-This project did not consistently produce promising fine-tuning results yet. Some experiments were affected by:
+```bash
+python evaluvation/<evaluation_script>.py \
+  --model_path outputs/qwen-0.5b-finetuned
+```
 
-- Python/PyTorch version compatibility problems
-- Differences between CUDA, CPU, MPS, and MLX environments
-- Limited hardware and memory
-- Early-stage preprocessing and evaluation workflows
-- The need for more careful dataset quality checks and hyperparameter tuning
+Evaluation should include both automated metrics, where available, and sample generations reviewed for relevance, consistency, and unwanted behavior.
 
-The repository should therefore be treated as an experiment and learning resource, not as a guaranteed recipe for producing a high-quality fine-tuned model.
+## Hardware considerations
 
-## Recommended next steps
+The project is intended for smaller-scale local experimentation. Memory usage depends on the model, sequence length, batch size, optimizer, precision, and training backend.
 
-- Pin and document a known-good Python and PyTorch environment.
-- Add a reproducible training YAML example and a matching command.
-- Record hardware, backend, dataset size, sequence length, and hyperparameters for every run.
-- Add validation-loss and sample-generation comparisons before and after fine-tuning.
-- Test a small, clean dataset before scaling up.
-- Add automated checks for dataset format and duplicate or low-quality examples.
+For lower-memory systems, consider:
+
+- Reducing the sequence length
+- Using a small per-device batch size
+- Increasing gradient accumulation instead of batch size
+- Training on a smaller dataset during initial tests
+- Saving checkpoints regularly
+- Using a compatible low-precision or parameter-efficient method when supported
+
+PyTorch, CUDA, Apple MPS, and MLX have different compatibility requirements. Check that your Python version, framework versions, and hardware backend are supported together before starting a long training run.
+
+## Current scope
+
+This repository is primarily a practical reference and starting point for Qwen 0.5B fine-tuning experiments. It is intended to help users understand the end-to-end workflow and adapt the scripts and configurations to their own datasets and hardware.
+
+Results will depend heavily on dataset quality, training configuration, hardware, and software versions. Reproducible runs should record the operating system, Python version, framework versions, hardware, dataset size, sequence length, and YAML configuration.
+
+## Roadmap
+
+- Add a complete, tested YAML training example
+- Provide a reproducible environment with pinned versions
+- Improve dataset validation and preprocessing utilities
+- Add clearer evaluation metrics and sample comparisons
+- Document supported CPU, CUDA, MPS, and MLX workflows
+- Explore parameter-efficient fine-tuning for lower-memory devices
 
 ## Contributing
 
-Issues, suggestions, and small improvements are welcome. If you reproduce a training result, please include your operating system, Python version, PyTorch version, backend, hardware, configuration, and error output.
+Issues, suggestions, documentation improvements, and reproducible experiment reports are welcome. When reporting a problem, include your operating system, Python version, PyTorch version, hardware backend, configuration, and error output.
 
 ## Disclaimer
 
-This repository is for educational and experimental use. Always verify that your training data and generated outputs comply with applicable licenses, privacy requirements, and the terms of the base model.
+This repository is intended for educational and research use. Verify that your datasets, model usage, and generated outputs comply with applicable licenses, privacy requirements, and the terms of the base model.
